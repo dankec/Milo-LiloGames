@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fff0d8">
+  <title>Milo &amp; Lilo: Čarobna pekarnica</title>
+  <style>
+    :root {
+      font-family: system-ui, "Segoe UI", sans-serif;
+      color: #533746;
+      background: #fff0d8;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 18% 8%, #fff 0 5%, transparent 5.5%),
+        radial-gradient(ellipse at 88% 20%, #fff8e8 0 8%, transparent 8.5%),
+        linear-gradient(180deg, #ffe7bd, #fff5e6 55%, #ffe1d0);
+    }
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    button:focus-visible { outline: 4px solid #6a4baa; outline-offset: 4px; }
+    .app { width: min(900px, 100%); margin: auto; padding: 15px 18px 28px; }
+    header { text-align: center; }
+    h1 { margin: 5px 0; color: #814b61; font-size: clamp(1.8rem, 6vw, 3rem); line-height: 1.15; }
+    .subtitle { margin: 7px 0 13px; font-size: clamp(1rem, 3vw, 1.2rem); }
+    .counter {
+      display: inline-block;
+      padding: 8px 15px;
+      border: 2px solid #efd3a6;
+      border-radius: 30px;
+      background: #fffaf0;
+      color: #71485b;
+      font-weight: 850;
+    }
+    .bakery {
+      position: relative;
+      min-height: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 5px solid #fff9ed;
+      border-radius: 35px;
+      background: linear-gradient(#a9e6f3 0 58%, #8dc889 58% 100%);
+      box-shadow: 0 8px 0 #d9b68d;
+    }
+    .bakery::before {
+      position: absolute;
+      right: 7%;
+      bottom: 24%;
+      width: 96px;
+      height: 75px;
+      border: 4px solid #fff6e6;
+      border-radius: 14px 14px 5px 5px;
+      background: #e48a74;
+      box-shadow: inset 0 12px #f5c16c;
+      content: "";
+    }
+    .bakery::after {
+      position: absolute;
+      right: calc(7% + 26px);
+      bottom: calc(24% + 50px);
+      width: 37px;
+      height: 37px;
+      border: 4px solid #fff6e6;
+      border-radius: 50%;
+      background: #e48a74;
+      content: "";
+    }
+    .shop-sign {
+      position: absolute;
+      z-index: 1;
+      right: 5%;
+      top: 10px;
+      padding: 5px 11px;
+      border: 3px solid #fff9ed;
+      border-radius: 13px;
+      background: #fff2cc;
+      color: #76475c;
+      font-size: clamp(.75rem, 2.5vw, 1rem);
+      font-weight: 900;
+      transform: rotate(2deg);
+    }
+    .cloud { position: absolute; top: 12px; left: 9%; font-size: clamp(2rem, 6vw, 3rem); animation: float 5s ease-in-out infinite alternate; }
+    .sun { position: absolute; top: 12px; right: 29%; font-size: clamp(2rem, 6vw, 3rem); animation: glow 2s ease-in-out infinite alternate; }
+    .countertop {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 24%;
+      border-top: 8px solid #fff0da;
+      background: repeating-linear-gradient(90deg, #d99d6d 0 42px, #e7b37e 42px 84px);
+    }
+    .friends { position: relative; z-index: 2; display: flex; align-items: end; gap: 12px; padding-bottom: 14px; font-size: clamp(4rem, 15vw, 7rem); filter: drop-shadow(0 8px 4px #714b5b44); }
+    .friends span { display: inline-block; animation: bob 1.8s ease-in-out infinite alternate; }
+    .friends span + span { animation-delay: .4s; }
+    .friends span.happy { animation: hop .3s ease-in-out 3 alternate; }
+    .card { margin-top: 17px; padding: clamp(15px, 4vw, 25px); border: 3px solid #fff; border-radius: 27px; background: #fffaf0; box-shadow: 0 8px 0 #e2c6a4; text-align: center; }
+    .order-title { margin: 0; color: #805269; font-size: clamp(1rem, 3vw, 1.2rem); font-weight: 850; }
+    .order { display: flex; min-height: 116px; align-items: center; justify-content: center; gap: clamp(10px, 4vw, 25px); margin: 8px 0 15px; padding: 12px; border: 3px dashed #e9c9a0; border-radius: 22px; background: #fff2dc; }
+    .order-icon { font-size: clamp(3.8rem, 13vw, 6.5rem); line-height: 1; }
+    .order-text { max-width: 530px; font-size: clamp(1.35rem, 5vw, 2rem); font-weight: 900; line-height: 1.25; }
+    .choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(7px, 2vw, 13px); max-width: 690px; margin: 0 auto 16px; }
+    .choice {
+      display: flex;
+      min-width: 0;
+      min-height: clamp(72px, 17vw, 112px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 4px solid #fff;
+      border-radius: 19px;
+      background: #f5e4ce;
+      color: #533746;
+      font-size: clamp(1.65rem, 7vw, 3rem);
+      font-weight: 900;
+      box-shadow: 0 6px 0 #d9c1a5;
+      transition: transform .12s, filter .12s, box-shadow .12s;
+    }
+    .choice small { font-size: clamp(.68rem, 2.6vw, .9rem); }
+    .choice:active { transform: translateY(4px); box-shadow: 0 2px 0 #d9c1a5; }
+    .choice[disabled] { cursor: default; opacity: .58; }
+    .choice.correct { outline: 5px solid #77bd7d; outline-offset: 2px; }
+    .choice.wrong { animation: nudge .2s ease-in-out 2 alternate; }
+    .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .action {
+      min-height: 49px;
+      padding: 9px 16px;
+      border: 0;
+      border-radius: 16px;
+      background: #d9f0d7;
+      color: #38563f;
+      font-weight: 850;
+      box-shadow: 0 4px 0 #afd0ad;
+    }
+    .action.secondary { background: #eee3f5; color: #56426a; box-shadow: 0 4px 0 #d3c2df; }
+    .status { min-height: 1.65em; margin: 14px 0 0; color: #69475c; font-size: clamp(1.05rem, 3.6vw, 1.3rem); font-weight: 900; }
+    .score { margin: 5px 0 0; color: #745a70; font-weight: 800; }
+    .hint { margin: 11px 0 0; color: #77697a; font-size: .92rem; }
+    .celebration {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: #3a284c99;
+    }
+    .celebration[hidden] { display: none; }
+    .celebration-card { width: min(440px, 100%); padding: 25px; border: 4px solid #fff; border-radius: 28px; background: #fff9ed; text-align: center; box-shadow: 0 14px 0 #b7987e; }
+    .celebration-card .big { font-size: 5rem; animation: bob 1s infinite alternate; }
+    .celebration-card h2 { margin: 6px; color: #805269; font-size: clamp(1.6rem, 6vw, 2.1rem); }
+    .celebration-card p { line-height: 1.5; }
+    @keyframes float { to { transform: translateX(28px); } }
+    @keyframes glow { to { transform: scale(1.1); } }
+    @keyframes bob { to { transform: translateY(-9px) rotate(3deg); } }
+    @keyframes hop { to { transform: translateY(-15px) rotate(-5deg); } }
+    @keyframes nudge { to { transform: translateX(5px); } }
+    @media (max-width: 520px) {
+      .app { padding: 10px 10px 20px; }
+      .bakery { min-height: 165px; }
+      .card { margin-top: 14px; padding: 14px 10px; }
+      .order { min-height: 100px; }
+      .choice { border-width: 3px; border-radius: 14px; }
+      .hint { font-size: .83rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>🧁 Čarobna pekarnica 🥐</h1>
+      <p class="subtitle">Pomozi Milu i Lilu pripremiti ukusne narudžbe!</p>
+      <div class="counter" id="tray" aria-live="polite">🍪 Pladanj 1 · 0/5 kolačića</div>
+    </header>
+
+    <section class="bakery" aria-label="Milo i Lilo ispred čarobne pekarnice">
+      <span class="cloud" aria-hidden="true">☁️</span>
+      <span class="sun" aria-hidden="true">☀️</span>
+      <span class="shop-sign" aria-hidden="true">SVJEŽE I ČAROBNO!</span>
+      <div class="friends" aria-hidden="true"><span id="milo">🐰</span><span id="lilo">🐻</span></div>
+      <div class="countertop" aria-hidden="true"></div>
+    </section>
+
+    <section class="card" aria-label="Narudžba za pekarnicu">
+      <p class="order-title">🔔 Nova narudžba!</p>
+      <div class="order">
+        <span class="order-icon" id="orderIcon" aria-hidden="true">🧁</span>
+        <div class="order-text" id="orderText" aria-live="polite"></div>
+      </div>
+      <div class="choices" id="choices" role="group" aria-label="Odaberi odgovor"></div>
+      <div class="actions">
+        <button class="action secondary" id="readOrder" type="button">🔁 Ponovi narudžbu</button>
+        <button class="action secondary" id="sound" type="button" aria-pressed="true">🔊 Zvuk uključen</button>
+        <button class="action" id="newOrder" type="button">⏭️ Druga narudžba</button>
+        <button class="action secondary" id="reset" type="button">↻ Nova igra</button>
+      </div>
+      <p class="status" id="status" aria-live="polite">Odaberi odgovor. Nema žurbe! 💛</p>
+      <p class="score" id="score" aria-live="polite">⭐ 0 zvjezdica</p>
+      <p class="hint">Prebroji ukrase, prepoznaj boju ili oblik, pronađi sliku prema riječi ili prvo slovo riječi. Ako pogriješiš, pokušaj ponovno — ovdje se svi uče! 💛</p>
+    </section>
+  </main>
+
+  <div class="celebration" id="celebration" hidden>
+    <div class="celebration-card" role="dialog" aria-modal="true" aria-labelledby="celebrationTitle">
+      <div class="big" aria-hidden="true">🎂🎉</div>
+      <h2 id="celebrationTitle">Pladanj je gotov!</h2>
+      <p>Bravo, mali pekaru! Milo i Lilo pripremili su sve kolačiće. Želiš li napraviti novi pladanj?</p>
+      <button class="action" id="nextTray" type="button">🍪 Napravi novi pladanj</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const $ = id => document.getElementById(id);
+      const praise = [
+        {hr: 'Bravo, mali pekaru! 🌟', en: 'Well done, little baker!'},
+        {hr: 'Odlično napravljeno! 🎉', en: 'Great job!'},
+        {hr: 'Milo i Lilo su ponosni! 💛', en: 'Milo and Lilo are proud of you!'},
+        {hr: 'Kako si to lijepo napravio! 🧁', en: 'You made that so nicely!'}
+      ];
+      const colors = [
+        {name: 'crvenu', label: 'Crvena', english: 'red', value: '#ed6679', emoji: '🍓'},
+        {name: 'žutu', label: 'Žuta', english: 'yellow', value: '#f2c64d', emoji: '🌟'},
+        {name: 'zelenu', label: 'Zelena', english: 'green', value: '#62b77a', emoji: '🍏'},
+        {name: 'plavu', label: 'Plava', english: 'blue', value: '#65aee6', emoji: '🫐'},
+        {name: 'ljubičastu', label: 'Ljubičasta', english: 'purple', value: '#a77bd1', emoji: '🍇'}
+      ];
+      const shapes = [
+        {name: 'krug', label: 'Krug', emoji: '🔵'},
+        {name: 'zvijezdu', label: 'Zvijezda', emoji: '⭐'},
+        {name: 'srce', label: 'Srce', emoji: '❤️'},
+        {name: 'trokut', label: 'Trokut', emoji: '🔺'},
+        {name: 'cvijet', label: 'Cvijet', emoji: '🌼'}
+      ];
+      const englishNumbers = ['one', 'two', 'three', 'four', 'five'];
+      const englishToppings = [
+        {emoji: '🍓', forms: ['strawberry', 'strawberries', 'strawberries', 'strawberries', 'strawberries']},
+        {emoji: '🫐', forms: ['blueberry', 'blueberries', 'blueberries', 'blueberries', 'blueberries']},
+        {emoji: '🍪', forms: ['cookie', 'cookies', 'cookies', 'cookies', 'cookies']},
+        {emoji: '🍒', forms: ['cherry', 'cherries', 'cherries', 'cherries', 'cherries']},
+        {emoji: '🍎', forms: ['apple', 'apples', 'apples', 'apples', 'apples']}
+      ];
+      const bakeryWords = [
+        {word: 'KRUH', english: 'bread', emoji: '🍞'},
+        {word: 'JABUKA', english: 'apple', emoji: '🍎'},
+        {word: 'SIR', english: 'cheese', emoji: '🧀'},
+        {word: 'MED', english: 'honey', emoji: '🍯'},
+        {word: 'TORTA', english: 'cake', emoji: '🎂'},
+        {word: 'KOLAČ', english: 'cookie', emoji: '🍪'},
+        {word: 'PECIVO', english: 'pastry', emoji: '🥐'},
+        {word: 'BANANA', english: 'banana', emoji: '🍌'}
+      ];
+      let tray = 1;
+      let completed = 0;
+      let stars = 0;
+      let task = null;
+      let locked = false;
+      let soundOn = true;
+      let audio = null;
+      let lastTaskType = '';
+      let lastPraise = null;
+      let voices = [];
+      let speechToken = 0;
+      let autoReadPending = false;
+
+      function loadVoices() {
+        if (!('speechSynthesis' in window)) return;
+        voices = window.speechSynthesis.getVoices();
+        updateReadButton();
+      }
+
+      function waitForVoices() {
+        loadVoices();
+        if (voices.length) return Promise.resolve();
+        return new Promise(resolve => {
+          let finished = false;
+          const finish = () => {
+            if (finished) return;
+            finished = true;
+            window.speechSynthesis.removeEventListener('voiceschanged', finish);
+            loadVoices();
+            resolve();
+          };
+          window.speechSynthesis.addEventListener('voiceschanged', finish, {once: true});
+          setTimeout(finish, 900);
+        });
+      }
+
+      function speechVoice() {
+        const croatian = voices.find(voice => /^hr(?:-|$)/i.test(voice.lang));
+        if (croatian) return {voice: croatian, language: 'hr'};
+        const english = voices.find(voice => /^en(?:-|$)/i.test(voice.lang));
+        if (english) return {voice: english, language: 'en'};
+        return null;
+      }
+
+      function updateReadButton() {
+        const button = $('readOrder');
+        if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+          button.textContent = '🗣️ Čitanje nije dostupno';
+          button.disabled = true;
+          return;
+        }
+        button.disabled = false;
+        const selected = speechVoice();
+        button.textContent = selected?.language === 'hr'
+          ? '🔁 Ponovi na hrvatskom'
+          : selected?.language === 'en'
+            ? '🔁 Ponovi na engleskom'
+            : '🔁 Ponovi narudžbu';
+      }
+
+      function random(max) {
+        return Math.floor(Math.random() * max);
+      }
+
+      function shuffle(items) {
+        const result = [...items];
+        for (let i = result.length - 1; i > 0; i--) {
+          const j = random(i + 1);
+          [result[i], result[j]] = [result[j], result[i]];
+        }
+        return result;
+      }
+
+      function updateScore() {
+        $('tray').textContent = `🍪 Pladanj ${tray} · ${completed}/5 kolačića`;
+        const lastTwo = stars % 100;
+        const starWord = stars % 10 === 1 && lastTwo !== 11
+          ? 'zvjezdica'
+          : stars % 10 >= 2 && stars % 10 <= 4 && (lastTwo < 12 || lastTwo > 14)
+            ? 'zvjezdice'
+            : 'zvjezdica';
+        $('score').textContent = `⭐ ${stars} ${starWord}`;
+      }
+
+      function chooseTaskType() {
+        const types = ['count', 'color', 'shape', 'word', 'letter'].filter(type => type !== lastTaskType);
+        lastTaskType = types[random(types.length)];
+        return lastTaskType;
+      }
+
+      function makeChoices(correct, options, render) {
+        const root = $('choices');
+        root.replaceChildren();
+        shuffle(options).forEach(option => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'choice';
+          button.setAttribute('aria-label', option.label || String(option.value));
+          render(button, option);
+          button.addEventListener('click', () => answer(button, option, correct));
+          root.append(button);
+        });
+      }
+
+      function makeOrder() {
+        locked = false;
+        $('celebration').hidden = true;
+        $('status').textContent = 'Odaberi odgovor. Nema žurbe! 💛';
+        const type = chooseTaskType();
+        if (type === 'count') makeCountOrder();
+        if (type === 'color') makeColorOrder();
+        if (type === 'shape') makeShapeOrder();
+        if (type === 'word') makeWordOrder();
+        if (type === 'letter') makeLetterOrder();
+        readOrderAutomatically();
+      }
+
+      function makeCountOrder() {
+        const count = 1 + random(5);
+        const toppingIndex = random(englishToppings.length);
+        const topping = englishToppings[toppingIndex];
+        const croatianToppings = [
+          ['jagodu', 'jagode', 'jagode', 'jagode', 'jagoda'],
+          ['borovnicu', 'borovnice', 'borovnice', 'borovnice', 'borovnica'],
+          ['kolačić', 'kolačića', 'kolačića', 'kolačića', 'kolačića'],
+          ['trešnju', 'trešnje', 'trešnje', 'trešnje', 'trešanja'],
+          ['jabuku', 'jabuke', 'jabuke', 'jabuke', 'jabuka']
+        ][toppingIndex];
+        const displayed = Array(count).fill(topping.emoji).join(' ');
+        task = {
+          type: 'count',
+          correct: count,
+          spoken: {
+            hr: `Stavi ${count} ${croatianToppings[count - 1]} na kolačić.`,
+            en: `Put ${englishNumbers[count - 1]} ${topping.forms[count - 1]} on the cupcake.`
+          }
+        };
+        $('orderIcon').textContent = '🧁';
+        $('orderText').innerHTML = `Stavi <strong>${displayed}</strong> na kolačić!`;
+        makeChoices(count, [1, 2, 3, 4, 5].map(value => ({value, label: `Broj ${value}`})), (button, option) => {
+          button.textContent = option.value;
+          button.setAttribute('aria-label', `Broj ${option.value}`);
+        });
+      }
+
+      function makeColorOrder() {
+        const options = shuffle(colors).slice(0, 4);
+        const correct = options[random(options.length)];
+        task = {
+          type: 'color',
+          correct,
+          spoken: {
+            hr: `Odaberi ${correct.name} glazuru.`,
+            en: `Choose the ${correct.english} frosting.`
+          }
+        };
+        $('orderIcon').textContent = '🎂';
+        $('orderText').innerHTML = `Odaberi <strong>${correct.name}</strong> glazuru!`;
+        makeChoices(correct, options, (button, option) => {
+          button.style.background = option.value;
+          button.textContent = option.emoji;
+          button.setAttribute('aria-label', `${option.label} glazura`);
+        });
+      }
+
+      function makeShapeOrder() {
+        const options = shuffle(shapes).slice(0, 4);
+        const correct = options[random(options.length)];
+        const englishShape = {krug: 'circle', zvijezdu: 'star', srce: 'heart', trokut: 'triangle', cvijet: 'flower'}[correct.name];
+        task = {
+          type: 'shape',
+          correct,
+          spoken: {
+            hr: `Ukras stavi u obliku: ${correct.name}.`,
+            en: `Choose the ${englishShape}-shaped decoration.`
+          }
+        };
+        $('orderIcon').textContent = '🍩';
+        $('orderText').innerHTML = `Ukras u obliku: <strong>${correct.name}</strong>!`;
+        makeChoices(correct, options, (button, option) => {
+          button.textContent = option.emoji;
+          button.setAttribute('aria-label', option.label);
+        });
+      }
+
+      function makeWordOrder() {
+        const options = shuffle(bakeryWords).slice(0, 4);
+        const correct = options[random(options.length)];
+        task = {
+          type: 'word',
+          correct,
+          spoken: {
+            hr: `Pronađi sliku za riječ: ${correct.word}.`,
+            en: `Find the picture for the Croatian word ${correct.english}.`
+          }
+        };
+        $('orderIcon').textContent = '📖';
+        $('orderText').innerHTML = `Pronađi sliku za riječ <strong>${correct.word}</strong>!`;
+        makeChoices(correct, options, (button, option) => {
+          button.textContent = option.emoji;
+          const label = `${option.word}, ${option.english}`;
+          button.setAttribute('aria-label', label);
+          const caption = document.createElement('small');
+          caption.textContent = option.word;
+          button.append(caption);
+        });
+      }
+
+      function makeLetterOrder() {
+        const options = shuffle(bakeryWords).slice(0, 4);
+        const correct = options[random(options.length)];
+        const firstLetter = correct.word[0];
+        task = {
+          type: 'letter',
+          correct: firstLetter,
+          spoken: {
+            hr: `Riječ ${correct.word} počinje slovom ${firstLetter}. Pronađi slovo ${firstLetter}.`,
+            en: `The Croatian word for ${correct.english} starts with the letter ${firstLetter}. Find the letter ${firstLetter}.`
+          }
+        };
+        $('orderIcon').textContent = correct.emoji;
+        $('orderText').innerHTML = `Koje je prvo slovo riječi <strong>${correct.word}</strong>?`;
+        const letters = shuffle([...new Set([firstLetter, ...options.map(word => word.word[0])])]);
+        makeChoices(firstLetter, letters.map(value => ({value, label: `Slovo ${value}`})), (button, option) => {
+          button.textContent = option.value;
+          button.setAttribute('aria-label', `Slovo ${option.value}`);
+        });
+      }
+
+      function say(message, token = null) {
+        const selected = speechVoice();
+        if (!soundOn || !selected || !('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
+        const utterance = new SpeechSynthesisUtterance(typeof message === 'string' ? message : message[selected.language]);
+        utterance.lang = selected.voice.lang;
+        utterance.voice = selected.voice;
+        utterance.rate = .85;
+        if (token !== null) {
+          utterance.onstart = () => {
+            if (token === speechToken) autoReadPending = false;
+          };
+          utterance.onerror = event => {
+            if (token === speechToken && event.error === 'not-allowed') autoReadPending = true;
+          };
+        }
+        window.speechSynthesis.cancel();
+        try {
+          window.speechSynthesis.speak(utterance);
+          if (token !== null) autoReadPending = false;
+        } catch (error) {
+          if (token !== null) autoReadPending = true;
+          throw error;
+        }
+      }
+
+      function readOrderAutomatically() {
+        const currentTask = task;
+        const token = ++speechToken;
+        autoReadPending = true;
+        if (!soundOn || !currentTask) return;
+        if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+          $('status').textContent = 'Čitanje naglas nije dostupno u ovom pregledniku.';
+          return;
+        }
+        waitForVoices().then(() => {
+          if (token !== speechToken || currentTask !== task || !soundOn) return;
+          if (!speechVoice()) {
+            $('status').textContent = 'Nije pronađen hrvatski ni engleski glas. Dodaj jedan u postavkama govora sustava.';
+            return;
+          }
+          const language = speechVoice().language === 'hr' ? 'hrvatskom' : 'engleskom';
+          $('status').textContent = `Čitam zadatak na ${language}. 🔊`;
+          say(currentTask.spoken, token);
+        });
+      }
+
+      function startPendingSpeech() {
+        if (!autoReadPending || !soundOn || !task || !speechVoice()) return;
+        speechToken++;
+        const language = speechVoice().language === 'hr' ? 'hrvatskom' : 'engleskom';
+        $('status').textContent = `Čitam zadatak na ${language}. 🔊`;
+        say(task.spoken, speechToken);
+      }
+
+      function tone(frequency, duration = .18) {
+        if (!soundOn) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        if (!audio) audio = new AudioContextClass();
+        if (audio.state === 'suspended') audio.resume().catch(() => {});
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        const now = audio.currentTime;
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, now);
+        gain.gain.setValueAtTime(.0001, now);
+        gain.gain.exponentialRampToValueAtTime(.13, now + .02);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+        oscillator.connect(gain);
+        gain.connect(audio.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration + .03);
+      }
+
+      function animateFriends() {
+        for (const friend of [$('milo'), $('lilo')]) {
+          friend.classList.remove('happy');
+          void friend.offsetWidth;
+          friend.classList.add('happy');
+          setTimeout(() => friend.classList.remove('happy'), 900);
+        }
+      }
+
+      function answer(button, option, correct) {
+        if (locked) return;
+        const isCorrect = task.type === 'count' || task.type === 'letter'
+          ? option.value === correct
+          : option === correct;
+        if (!isCorrect) {
+          button.classList.remove('wrong');
+          void button.offsetWidth;
+          button.classList.add('wrong');
+          $('status').textContent = 'Još jedan pokušaj! Pogledaj narudžbu. 💛';
+          say({hr: 'Pokušaj ponovno.', en: 'Try again.'});
+          setTimeout(() => button.classList.remove('wrong'), 500);
+          return;
+        }
+        locked = true;
+        stars++;
+        completed++;
+        button.classList.add('correct');
+        document.querySelectorAll('.choice').forEach(choice => { choice.disabled = true; });
+        animateFriends();
+        tone([523.25, 587.33, 659.25][random(3)], .28);
+        const messages = praise.filter(message => message.hr !== lastPraise?.hr);
+        lastPraise = messages[random(messages.length)];
+        $('status').textContent = lastPraise.hr;
+        updateScore();
+        say(lastPraise);
+        if (completed >= 5) {
+          setTimeout(() => { $('celebration').hidden = false; $('nextTray').focus(); }, 650);
+        } else {
+          setTimeout(makeOrder, 1200);
+        }
+      }
+
+      $('readOrder').addEventListener('click', async () => {
+        if (!soundOn) {
+          $('status').textContent = 'Zvuk je isključen. Uključi ga za čitanje narudžbe. 🔊';
+          return;
+        }
+        if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+          $('status').textContent = 'Ovaj preglednik ne podržava čitanje naglas.';
+          return;
+        }
+        await waitForVoices();
+        const selected = speechVoice();
+        if (!selected) {
+          $('status').textContent = 'Nije pronađen hrvatski ni engleski glas. Dodaj jedan u postavkama govora sustava.';
+          return;
+        }
+        if (task) {
+          say(task.spoken);
+          $('status').textContent = selected.language === 'hr'
+            ? 'Čitam narudžbu na hrvatskom. 🔊'
+            : 'Čitam narudžbu na engleskom. 🔊';
+        }
+      });
+      document.addEventListener('pointerdown', startPendingSpeech, true);
+      document.addEventListener('keydown', startPendingSpeech, true);
+      $('sound').addEventListener('click', () => {
+        soundOn = !soundOn;
+        $('sound').setAttribute('aria-pressed', String(soundOn));
+        $('sound').textContent = soundOn ? '🔊 Zvuk uključen' : '🔇 Zvuk isključen';
+        if (!soundOn && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          autoReadPending = false;
+        }
+        $('status').textContent = soundOn ? 'Zvuk je uključen. 🎵' : 'Zvuk je isključen. Igrajmo dalje! 💛';
+        if (soundOn) tone(523.25);
+      });
+      $('newOrder').addEventListener('click', () => {
+        if (locked) return;
+        makeOrder();
+      });
+      $('reset').addEventListener('click', () => {
+        tray = 1;
+        completed = 0;
+        stars = 0;
+        lastTaskType = '';
+        updateScore();
+        makeOrder();
+        if ('speechSynthesis' in window) {
+          loadVoices();
+          window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+        }
+        $('status').textContent = 'Počinjemo novu igru! Što ćemo prvo ispeći? 🧁';
+      });
+      $('nextTray').addEventListener('click', () => {
+        tray++;
+        completed = 0;
+        updateScore();
+        makeOrder();
+        $('status').textContent = 'Novi pladanj, nova čarolija! Što ćemo ispeći? ✨';
+        document.querySelector('.choice')?.focus();
+      });
+
+      updateScore();
+      makeOrder();
+    })();
+  </script>
+</body>
+</html>

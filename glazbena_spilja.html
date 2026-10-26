@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#211744">
+  <title>Milo &amp; Lilo: Glazbena špilja</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      color: #29244b;
+      background: #211744;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 50% 100%, #a36db2 0, #694c91 29%, transparent 67%),
+        linear-gradient(155deg, #161535, #38265f 58%, #593d79);
+    }
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    button:focus-visible { outline: 4px solid #fff; outline-offset: 4px; }
+    .app { width: min(900px, 100%); margin: auto; padding: 16px 18px 28px; }
+    header { text-align: center; color: #fff8dd; }
+    h1 { margin: 7px 0 0; font-size: clamp(1.8rem, 6vw, 3.2rem); line-height: 1.15; text-shadow: 0 4px 0 #45305e; }
+    .subtitle { margin: 8px 0 16px; font-size: clamp(1rem, 3vw, 1.2rem); color: #eee2ff; }
+    .cave {
+      position: relative;
+      display: grid;
+      min-height: 178px;
+      place-items: center;
+      overflow: hidden;
+      border: 4px solid #cfb8eb;
+      border-bottom-width: 8px;
+      border-radius: 48% 48% 24px 24px / 43% 43% 24px 24px;
+      background:
+        radial-gradient(ellipse at 50% 105%, #f9dc9a 0 3%, #bd91c8 4% 7%, transparent 8%),
+        radial-gradient(ellipse at 50% 110%, #67477c 0 35%, transparent 36%),
+        linear-gradient(180deg, #29234d, #72518f);
+      box-shadow: inset 0 -18px 24px #20183b88, 0 9px 0 #39264f;
+    }
+    .cave::before, .cave::after {
+      position: absolute;
+      top: 0;
+      width: 18%;
+      height: 37%;
+      content: "";
+      background: #181737;
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
+    }
+    .cave::before { left: 13%; }
+    .cave::after { right: 13%; }
+    .crystal { position: absolute; z-index: 1; font-size: clamp(1.5rem, 5vw, 2.7rem); filter: drop-shadow(0 0 12px #c9f9ff); animation: glow 2.2s ease-in-out infinite alternate; }
+    .crystal.one { left: 12%; top: 45%; }
+    .crystal.two { right: 12%; top: 50%; animation-delay: .8s; }
+    .mascots { position: relative; z-index: 2; display: flex; align-items: end; gap: 14px; font-size: clamp(3.8rem, 13vw, 6.7rem); filter: drop-shadow(0 8px 4px #24163888); }
+    .mascots span { display: inline-block; animation: bob 1.7s ease-in-out infinite alternate; }
+    .mascots span + span { animation-delay: .45s; }
+    .mascots span.playing { animation: hop .24s ease-in-out 2 alternate; }
+    .card { margin-top: 17px; padding: clamp(15px, 4vw, 25px); border: 3px solid #eadbff; border-radius: 25px; background: #fff9ed; box-shadow: 0 9px 0 #4a3261; text-align: center; }
+    .modes { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .mode, .action {
+      min-height: 48px;
+      padding: 10px 17px;
+      border: 0;
+      border-radius: 16px;
+      background: #e8dcf8;
+      color: #32264f;
+      font-weight: 850;
+      box-shadow: 0 4px 0 #c5b2dd;
+    }
+    .mode[aria-pressed="true"] { background: #ffe28a; box-shadow: 0 4px 0 #d1a546; }
+    .instruction { min-height: 3.2em; margin: 18px auto 12px; font-size: clamp(1.15rem, 4vw, 1.55rem); font-weight: 850; }
+    .notes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(6px, 2vw, 13px); max-width: 700px; margin: 13px auto 20px; }
+    .note {
+      display: flex;
+      min-width: 0;
+      min-height: clamp(94px, 22vw, 142px);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 4px solid #fff;
+      border-radius: 22px;
+      color: #302344;
+      font-size: clamp(1.7rem, 7vw, 3.2rem);
+      font-weight: 900;
+      box-shadow: 0 7px 0 #503e64, inset 0 0 0 3px #ffffff55;
+      transition: transform .12s, filter .12s, box-shadow .12s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .note small { font-size: clamp(.68rem, 2.7vw, .9rem); }
+    .note:nth-child(1) { background: #ff9db2; }
+    .note:nth-child(2) { background: #ffd27f; }
+    .note:nth-child(3) { background: #fff29a; }
+    .note:nth-child(4) { background: #a8e7bb; }
+    .note:nth-child(5) { background: #a6dcff; }
+    .note:active, .note.lit { transform: translateY(5px) scale(.97); filter: brightness(1.12); box-shadow: 0 2px 0 #503e64, inset 0 0 0 3px #ffffff55; }
+    .note.lit { outline: 5px solid #fff7b6; outline-offset: 2px; }
+    .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 11px; }
+    .action { min-height: 54px; background: #d4f2d8; font-size: 1.05rem; }
+    .action.secondary { background: #e8dcf8; }
+    .action:disabled { cursor: wait; opacity: .68; }
+    .status { min-height: 1.7em; margin: 15px 0 0; color: #583b68; font-size: 1.15rem; font-weight: 850; }
+    .score { margin: 7px 0 0; color: #675579; font-weight: 750; }
+    .hint { margin: 12px 0 0; color: #665a74; font-size: .93rem; }
+    @keyframes glow { to { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 20px #d9fbff); } }
+    @keyframes bob { to { transform: translateY(-8px) rotate(3deg); } }
+    @keyframes hop { to { transform: translateY(-13px) rotate(-5deg); } }
+    @media (max-width: 480px) {
+      .app { padding: 10px 10px 20px; }
+      .cave { min-height: 140px; }
+      .card { margin-top: 14px; padding: 14px 10px; }
+      .note { border-width: 3px; border-radius: 16px; }
+      .mode { padding: 9px 12px; }
+      .hint { font-size: .85rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>🎵 Glazbena špilja 🎵</h1>
+      <p class="subtitle">Sviraj vesele melodije s Milom i Lilom!</p>
+    </header>
+    <section class="cave" aria-label="Milo i Lilo u šarenoj glazbenoj špilji">
+      <span class="crystal one" aria-hidden="true">💎</span>
+      <div class="mascots" aria-hidden="true"><span id="milo">🐰</span><span id="lilo">🐻</span></div>
+      <span class="crystal two" aria-hidden="true">💎</span>
+    </section>
+    <section class="card" aria-label="Glazbena igra">
+      <div class="modes" role="group" aria-label="Odabir igre">
+        <button class="mode" id="freeMode" type="button" aria-pressed="true">🎹 Slobodno sviranje</button>
+        <button class="mode" id="memoryMode" type="button" aria-pressed="false">✨ Ponovi ritam</button>
+      </div>
+      <p class="instruction" id="instruction" aria-live="polite">Dodirni šarene tipke i sviraj svoju pjesmu!</p>
+      <div class="notes" role="group" aria-label="Glazbene tipke">
+        <button class="note" type="button" data-note="0" aria-label="Crvena tipka, ton C"><span>🐠</span><small>C</small></button>
+        <button class="note" type="button" data-note="1" aria-label="Narančasta tipka, ton D"><span>🦀</span><small>D</small></button>
+        <button class="note" type="button" data-note="2" aria-label="Žuta tipka, ton E"><span>⭐</span><small>E</small></button>
+        <button class="note" type="button" data-note="3" aria-label="Zelena tipka, ton F"><span>🐸</span><small>F</small></button>
+        <button class="note" type="button" data-note="4" aria-label="Plava tipka, ton G"><span>🐬</span><small>G</small></button>
+      </div>
+      <div class="actions">
+        <button class="action" id="startRound" type="button" hidden>▶️ Slušaj ritam</button>
+        <button class="action secondary" id="replay" type="button" hidden>🔁 Ponovi ritam</button>
+        <button class="action secondary" id="sound" type="button" aria-pressed="true">🔊 Zvuk uključen</button>
+      </div>
+      <p class="status" id="status" aria-live="polite">Svaka tipka svira svoju veselu notu.</p>
+      <p class="score" id="score" hidden>✨ Ritam 1 · 🌟 0 ponovljenih</p>
+      <p class="hint">Tipke sviraju tonove C–D–E–F–G iz C-durske ljestvice. Na računalu sviraj tipkama A S D F G. Pogriješiš li u ritmu, samo ćemo ga ponoviti. 💛</p>
+    </section>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+
+      const notes = [
+        {name: 'C', frequency: 261.63},
+        {name: 'D', frequency: 293.66},
+        {name: 'E', frequency: 329.63},
+        {name: 'F', frequency: 349.23},
+        {name: 'G', frequency: 392}
+      ];
+      const noteButtons = [...document.querySelectorAll('.note')];
+      const $ = id => document.getElementById(id);
+      let audio = null;
+      let soundOn = true;
+      let mode = 'free';
+      let sequence = [];
+      let inputIndex = 0;
+      let round = 1;
+      let wins = 0;
+      let playingSequence = false;
+      let inputLocked = false;
+      let playbackId = 0;
+      let statusTimer;
+
+      function setStatus(message) {
+        $('status').textContent = message;
+      }
+
+      async function getAudio() {
+        if (!audio) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) {
+            setStatus('Ovaj preglednik ne podržava zvuk. Možeš ipak ponavljati tipke. 💛');
+            return null;
+          }
+          audio = new AudioContextClass();
+        }
+        if (audio.state === 'suspended') await audio.resume();
+        return audio;
+      }
+
+      async function playTone(index, duration = .42) {
+        if (!soundOn) return;
+        const context = await getAudio();
+        if (!context) return;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const now = context.currentTime;
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(notes[index].frequency, now);
+        gain.gain.setValueAtTime(.0001, now);
+        gain.gain.exponentialRampToValueAtTime(.22, now + .025);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + duration + .03);
+      }
+
+      function flash(index, duration = 420) {
+        const button = noteButtons[index];
+        button.classList.add('lit');
+        const mascot = index % 2 ? $('lilo') : $('milo');
+        mascot.classList.remove('playing');
+        void mascot.offsetWidth;
+        mascot.classList.add('playing');
+        setTimeout(() => button.classList.remove('lit'), duration);
+        setTimeout(() => mascot.classList.remove('playing'), 600);
+      }
+
+      async function tapNote(index) {
+        flash(index);
+        await playTone(index);
+        if (mode !== 'memory' || playingSequence || inputLocked) return;
+        if (index !== sequence[inputIndex]) {
+          inputLocked = true;
+          clearTimeout(statusTimer);
+          setStatus('Lijepo pokušano! Poslušajmo ritam još jednom. 💛');
+          $('replay').hidden = false;
+          setTimeout(() => { inputLocked = false; }, 650);
+          return;
+        }
+        inputIndex++;
+        if (inputIndex < sequence.length) {
+          const remaining = sequence.length - inputIndex;
+          setStatus(remaining === 1 ? 'Još jedna tipka! ✨' : `Bravo! Još ${remaining} tipke. ✨`);
+          return;
+        }
+        wins++;
+        round++;
+        $('score').textContent = `✨ Ritam ${round} · 🌟 ${wins} ${wins === 1 ? 'ponovljen' : 'ponovljena'}`;
+        setStatus('Čarobno odsvirano! Bravo! 🌟');
+        inputLocked = true;
+        await playFanfare();
+        setTimeout(() => {
+          if (mode !== 'memory') return;
+          sequence.push(Math.floor(Math.random() * notes.length));
+          inputIndex = 0;
+          inputLocked = false;
+          setStatus('Sada ponovi novi ritam!');
+          $('replay').hidden = false;
+          playSequence();
+        }, 950);
+      }
+
+      async function playFanfare() {
+        if (!soundOn) return;
+        for (const index of [2, 3, 4]) {
+          await playTone(index, .25);
+          await new Promise(resolve => setTimeout(resolve, 115));
+        }
+      }
+
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      async function playSequence() {
+        if (mode !== 'memory' || !sequence.length || playingSequence) return;
+        const thisPlayback = ++playbackId;
+        playingSequence = true;
+        inputLocked = true;
+        inputIndex = 0;
+        $('startRound').disabled = true;
+        $('replay').disabled = true;
+        setStatus('Slušaj pažljivo... 👂');
+        await wait(450);
+        for (const index of sequence) {
+          if (thisPlayback !== playbackId || mode !== 'memory') break;
+          flash(index, 470);
+          await playTone(index, .4);
+          await wait(260);
+        }
+        if (thisPlayback === playbackId && mode === 'memory') {
+          playingSequence = false;
+          inputLocked = false;
+          $('startRound').disabled = false;
+          $('replay').disabled = false;
+          setStatus('Tvoj red! Dodirni tipke istim redom. 🎵');
+        } else {
+          playingSequence = false;
+          $('startRound').disabled = false;
+          $('replay').disabled = false;
+        }
+      }
+
+      function startMemoryGame() {
+        mode = 'memory';
+        sequence = [Math.floor(Math.random() * notes.length)];
+        inputIndex = 0;
+        round = 1;
+        wins = 0;
+        $('score').textContent = '✨ Ritam 1 · 🌟 0 ponovljenih';
+        $('score').hidden = false;
+        $('startRound').hidden = true;
+        $('replay').hidden = true;
+        playSequence();
+      }
+
+      function showFreeMode() {
+        playbackId++;
+        mode = 'free';
+        sequence = [];
+        playingSequence = false;
+        inputLocked = false;
+        $('startRound').hidden = true;
+        $('replay').hidden = true;
+        $('score').hidden = true;
+        $('instruction').textContent = 'Dodirni šarene tipke i sviraj svoju pjesmu!';
+        $('freeMode').setAttribute('aria-pressed', 'true');
+        $('memoryMode').setAttribute('aria-pressed', 'false');
+        setStatus('Svaka tipka svira svoju veselu notu.');
+      }
+
+      $('freeMode').addEventListener('click', showFreeMode);
+      $('memoryMode').addEventListener('click', () => {
+        playbackId++;
+        mode = 'memory';
+        $('freeMode').setAttribute('aria-pressed', 'false');
+        $('memoryMode').setAttribute('aria-pressed', 'true');
+        $('instruction').textContent = 'Poslušaj melodiju, pa dodirni iste tipke istim redom!';
+        $('startRound').hidden = false;
+        $('startRound').disabled = false;
+        $('replay').hidden = true;
+        $('replay').disabled = false;
+        $('score').hidden = false;
+        setStatus('Spremni? Pritisni „Slušaj ritam”! 🎶');
+      });
+      $('startRound').addEventListener('click', startMemoryGame);
+      $('replay').addEventListener('click', () => {
+        if (mode !== 'memory' || playingSequence) return;
+        setStatus('Nema žurbe. Poslušajmo još jednom! 💛');
+        playSequence();
+      });
+      $('sound').addEventListener('click', async () => {
+        soundOn = !soundOn;
+        $('sound').setAttribute('aria-pressed', String(soundOn));
+        $('sound').textContent = soundOn ? '🔊 Zvuk uključen' : '🔇 Zvuk isključen';
+        if (soundOn) {
+          await playTone(2, .25);
+          setStatus('Zvuk je uključen. 🎵');
+        } else {
+          setStatus('Zvuk je isključen, ali tipke i dalje svijetle. ✨');
+        }
+      });
+      noteButtons.forEach(button => {
+        button.addEventListener('click', () => tapNote(Number(button.dataset.note)));
+      });
+      document.addEventListener('keydown', event => {
+        if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+        const index = {'a': 0, 's': 1, 'd': 2, 'f': 3, 'g': 4}[event.key.toLowerCase()];
+        if (index === undefined) return;
+        event.preventDefault();
+        tapNote(index);
+      });
+    })();
+  </script>
+</body>
+</html>

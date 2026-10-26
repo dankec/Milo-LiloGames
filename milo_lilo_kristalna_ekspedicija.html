@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Milo &amp; Lilo: Kristalna ekspedicija</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#10182e;color:white;font:600 15px system-ui;overflow:hidden}
+    canvas{display:block;touch-action:none}
+    #hud{position:fixed;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:none}
+    #hud div{background:#152a4de8;padding:10px;border:1px solid #b6e9e966;border-radius:14px;line-height:1.7}
+    #controls{position:fixed;bottom:20px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:end}
+    #pad{width:130px;height:130px;border-radius:100%;background:#ffffff29;border:2px solid #ffffff6b;touch-action:none;position:relative}
+    #stick{width:58px;height:58px;position:absolute;top:34px;left:34px;border-radius:100%;background:#b9edeea9}
+    button{border:0;border-radius:15px;background:#ffdc8b;color:#25334c;padding:12px;font-size:17px;font-weight:900;touch-action:none}
+    #buttons{display:grid;grid-template-columns:70px 70px;gap:9px}
+    #buttons button{height:64px;background:#d5eaff}
+    #buttons button:first-child{background:#ffad8a}
+    #menu{position:fixed;top:91px;right:8px;display:flex;gap:5px}
+    #menu button{font-size:13px;padding:8px}
+    #goal{position:fixed;left:50%;bottom:164px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;max-width:calc(100vw - 28px);padding:8px 13px;border:1px solid #b6e9e966;border-radius:16px;background:#152a4de8;pointer-events:none}
+    #goalArrow{display:inline-block;font-size:24px;line-height:1;transition:transform .12s}
+    #goalLabel{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #toast{position:fixed;top:145px;left:10%;width:80%;text-align:center;pointer-events:none;text-shadow:0 2px 5px black}
+    #overlay{position:fixed;inset:0;background:#071226d9;display:none;align-items:center;justify-content:center;padding:18px}
+    #overlay.show{display:flex}
+    .panel{width:min(500px,100%);max-height:85vh;overflow:auto;background:linear-gradient(145deg,#344e77,#172a4b);border:1px solid #a5e9d4;border-radius:24px;padding:22px;text-align:center}
+    .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}
+    .answers button{min-height:55px;background:#c2f3df}
+    .panel h2{color:#ffe89b}
+    .panel p{line-height:1.5}
+    .wide{width:100%;margin:6px 0}
+    @media(max-height:520px){#controls{bottom:8px}#pad{width:100px;height:100px}#stick{top:19px;left:19px}#buttons{grid-template-columns:60px 60px}#buttons button{height:52px}#goal{bottom:120px}}
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="hud"><div id="a"></div><div id="b"></div></div>
+  <div id="menu"><button id="shop">🛍️ Trgovina</button><button id="help" aria-label="Upute">❔</button></div>
+  <div id="goal" aria-live="polite"><span id="goalArrow">⬆️</span><span id="goalLabel"></span></div>
+  <div id="toast"></div>
+  <div id="controls">
+    <div id="pad"><div id="stick"></div></div>
+    <div id="buttons">
+      <button id="hit" aria-label="Napad">⚔️</button><button id="use" aria-label="Interakcija">✋</button>
+      <button id="dash" aria-label="Izbjegavanje">💨</button><button id="swap" aria-label="Promijeni lika">🐰🐻</button>
+    </div>
+  </div>
+  <div id="overlay"><div class="panel"><h2 id="title"></h2><p id="desc"></p><div id="content"></div><p id="feedback"></p></div></div>
+  <script>
+    (() => {
+      'use strict';
+
+      const c = document.querySelector('canvas');
+      const g = c.getContext('2d');
+      const $ = id => document.getElementById(id);
+      let w, h, dpr, camX = 0, camY = 0, frame = 0, paused = false, inv = 0, atk = 0, dashCD = 0;
+      let joy = {x: 0, y: 0}, held = {}, objects = [], mobs = [], particles = [], portal, boss;
+      let hero = {x: 140, y: 140, face: 0}, world = 0;
+      let s = {world: 0, gems: 0, xp: 0, lv: 1, hp: 5, max: 5, power: 1, speed: 1, character: 0, difficulty: null};
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('milo_expedicija'));
+        if (stored) s = {...s, ...stored};
+      } catch (e) {}
+      s.world = Math.max(0, Math.min(2, Number(s.world) || 0));
+      if (s.difficulty !== 'easy' && s.difficulty !== 'normal') s.difficulty = null;
+      world = s.world;
+
+      const themes = [
+        ['Kristalna šuma', '#2f6e60', '#20534e', '#72c9a0'],
+        ['Sunčani hram', '#b18a61', '#8d6a53', '#e7bf83'],
+        ['Mjesečev dvorac', '#545b91', '#393f76', '#9d9bdf']
+      ];
+      const words = ['MAČKA', 'SUNCE', 'LOPTA', 'KAPA', 'PTICA', 'KUĆA', 'OBLAK', 'RIBA', 'BROD', 'KONJ', 'ŠUMA', 'VODA', 'MORE', 'RUKA', 'NOGA', 'MEDO'];
+      const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+      const sh = a => [...a].sort(() => Math.random() - .5);
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const isEasy = () => s.difficulty !== 'normal';
+      const bossMaxHp = () => isEasy() ? 4 + world * 2 : 6 + world * 4;
+
+      function resize() {
+        w = innerWidth;
+        h = innerHeight;
+        dpr = Math.min(devicePixelRatio || 1, 2);
+        c.width = w * dpr;
+        c.height = h * dpr;
+        c.style.width = w + 'px';
+        c.style.height = h + 'px';
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      addEventListener('resize', resize);
+      resize();
+
+      function save() {
+        try {
+          localStorage.setItem('milo_expedicija', JSON.stringify(s));
+        } catch (e) {}
+      }
+
+      function objective() {
+        const runes = objects.filter(o => o.type === 'rune' && !o.done);
+        if (runes.length) {
+          runes.sort((a, b) => dist(hero, a) - dist(hero, b));
+          return {target: runes[0], label: `Pronađi runu · ${3 - runes.length}/3`};
+        }
+        if (boss.alive) return {target: boss, label: 'Pronađi čuvara'};
+        return {target: portal, label: 'Idi do portala'};
+      }
+
+      function updateNavigation() {
+        const {target, label} = objective();
+        const angle = Math.atan2(target.y - hero.y, target.x - hero.x);
+        const arrow = $('goalArrow');
+        arrow.style.transform = `rotate(${angle * 180 / Math.PI + 90}deg)`;
+        $('goalLabel').textContent = dist(hero, target) < 90 ? `${label} · Stigao/la si!` : label;
+      }
+
+      function hud() {
+        $('a').innerHTML = `🌍 ${world + 1}/3 ${themes[world][0]}<br>❤️ ${s.hp}/${s.max} · 🔮 ${objects.filter(o => o.type === 'rune' && o.done).length}/3`;
+        $('b').innerHTML = `💎 ${s.gems} · ⭐ ${s.xp}<br>🏅 ${s.lv} · ⚔️ ${s.power}`;
+        updateNavigation();
+        save();
+      }
+
+      function toast(t) {
+        $('toast').textContent = t;
+        setTimeout(() => {
+          if ($('toast').textContent === t) $('toast').textContent = '';
+        }, 2400);
+      }
+
+      function init() {
+        world = s.world;
+        hero.x = 140;
+        hero.y = 140;
+        objects = [
+          {x: 500, y: 340, type: 'rune'}, {x: 1250, y: 450, type: 'rune'},
+          {x: 1370, y: 1150, type: 'rune'}, {x: 740, y: 210, type: 'chest'},
+          {x: 410, y: 970, type: 'chest'}, {x: 1500, y: 730, type: 'chest'},
+          {x: 230, y: 220, type: 'heal'}
+        ].map(o => ({...o, done: false}));
+        portal = {x: 1710, y: 1410};
+        boss = {x: 1530, y: 1250, hp: bossMaxHp(), alive: true};
+        const count = isEasy() ? 6 + world * 2 : 12 + world * 4;
+        mobs = Array.from({length: count}, (_, i) => ({
+          x: 360 + (i * 127) % 1320, y: 320 + (i * 191) % 1000,
+          hp: isEasy() ? 1 : 2 + world, alive: true, t: i * 30
+        }));
+        paused = false;
+        $('overlay').classList.remove('show');
+        hud();
+        toast('Otkrij rune, pobijedi čuvara i otključaj portal!');
+      }
+
+      function panel(title, desc) {
+        paused = true;
+        joy.x = joy.y = 0;
+        held = {};
+        $('overlay').classList.add('show');
+        $('title').textContent = title;
+        $('desc').textContent = desc;
+        $('content').replaceChildren();
+        $('feedback').textContent = '';
+      }
+
+      function close() {
+        paused = false;
+        $('overlay').classList.remove('show');
+        hud();
+      }
+
+      function btn(label, fn) {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.className = 'wide';
+        b.onclick = fn;
+        $('content').append(b);
+      }
+
+      function chooseDifficulty(value, firstChoice) {
+        s.difficulty = value;
+        save();
+        if (firstChoice && value === 'normal') init();
+        else if (!firstChoice && value === 'easy') {
+          const limit = 6 + world * 2;
+          mobs = mobs.filter((_, i) => i < limit);
+          mobs.forEach(m => { m.hp = Math.min(m.hp, 1); });
+          if (boss.alive) boss.hp = Math.min(boss.hp, bossMaxHp());
+        }
+        close();
+        toast(value === 'easy' ? 'Odabrano: Lagano 🌼' : 'Odabrano: Uobičajeno ✨');
+      }
+
+      function difficultyPicker(firstChoice = false) {
+        panel('🌈 Odaberi težinu', 'Lagano je preporučeno za početak. Težinu možeš promijeniti i kasnije u uputama. Broj protivnika prilagođava se pri ulasku u sljedeći svijet.');
+        btn('🌼 Lagano — brojenje sličica i blaži protivnici', () => chooseDifficulty('easy', firstChoice));
+        btn('✨ Uobičajeno — slova, zadaci i više protivnika', () => chooseDifficulty('normal', firstChoice));
+      }
+
+      function reward(n) {
+        s.gems += n;
+        s.xp += n * 2;
+        if (s.xp >= s.lv * 60) {
+          s.xp -= s.lv * 60;
+          s.lv++;
+          s.hp = s.max;
+          toast('🏅 Nova razina!');
+        }
+        hud();
+      }
+
+      function puzzle(callback) {
+        let q, correct, options;
+        if (isEasy()) {
+          const pictures = ['🐰', '🐻', '⭐', '🍎', '🌼', '🦋'];
+          const picture = pictures[rand(0, pictures.length - 1)];
+          const count = rand(1, 5);
+          correct = String(count);
+          q = `Prebroji: ${picture.repeat(count)}`;
+          options = sh(['1', '2', '3', '4', '5']);
+        } else {
+          const type = rand(0, 2);
+          if (type === 0) {
+            const word = words[rand(0, words.length - 1)];
+            const i = rand(0, word.length - 1);
+            correct = word[i];
+            q = word.slice(0, i) + ' _ ' + word.slice(i + 1);
+            options = sh([correct, ...sh('ABCČĆDĐEFGHIJKLMNOPRSŠTUVZŽ'.split('').filter(x => x !== correct)).slice(0, 3)]);
+          } else if (type === 1) {
+            let a = rand(1, 9), b = rand(1, 9), sub = rand(0, 1);
+            if (sub && b > a) [a, b] = [b, a];
+            if (!sub) b = Math.min(b, 10 - a);
+            correct = String(sub ? a - b : a + b);
+            q = `${a} ${sub ? '−' : '+'} ${b} = ?`;
+            const opts = new Set([correct]);
+            while (opts.size < 4) opts.add(String(rand(0, 10)));
+            options = sh([...opts]);
+          } else {
+            correct = words[rand(0, words.length - 1)];
+            q = correct.split('').join(' · ');
+            options = sh([correct, ...sh(words.filter(x => x !== correct)).slice(0, 3)]);
+          }
+        }
+        panel('✨ Čarobni izazov', q);
+        const grid = document.createElement('div');
+        grid.className = 'answers';
+        $('content').append(grid);
+        options.forEach(a => {
+          const b = document.createElement('button');
+          b.textContent = a;
+          b.onclick = () => {
+            if (a === correct) {
+              grid.querySelectorAll('button').forEach(x => x.disabled = true);
+              $('feedback').textContent = '🎉 Točno!';
+              setTimeout(() => { close(); callback(); }, 500);
+            } else {
+              b.disabled = true;
+              $('feedback').textContent = 'Pokušaj ponovno!';
+            }
+          };
+          grid.append(b);
+        });
+      }
+
+      function use() {
+        if (paused) return;
+        const choices = [...objects.filter(o => !o.done), portal].sort((a, b) => dist(hero, a) - dist(hero, b));
+        const o = choices[0];
+        if (!o || dist(hero, o) > 105) {
+          toast('Priđi knjizi, škrinji ili portalu.');
+          return;
+        }
+        if (o === portal) {
+          if (objects.filter(x => x.type === 'rune' && x.done).length < 3 || boss.alive) {
+            toast('🔒 Trebaju tri rune i pobjeda nad čuvarom!');
+            return;
+          }
+          if (world === 2) {
+            panel('🏆 Velika pobjeda!', 'Spasio/la si sve otoke!');
+            btn('Igraj ponovno', () => {
+              s = {world: 0, gems: 0, xp: 0, lv: 1, hp: 5, max: 5, power: 1, speed: 1, character: 0, difficulty: s.difficulty};
+              init();
+            });
+          } else {
+            panel('🌟 Novi otok otključan!', 'Spreman/na za teže izazove?');
+            btn('Nastavi', () => { s.world++; s.hp = s.max; init(); });
+          }
+          return;
+        }
+        if (o.type === 'heal') {
+          if (s.gems >= 15) {
+            s.gems -= 15;
+            s.hp = s.max;
+            hud();
+            toast('💖 Zdravlje obnovljeno!');
+          } else toast('Treba 15 dragulja.');
+        } else {
+          puzzle(() => {
+            o.done = true;
+            reward(o.type === 'rune' ? 25 : 35);
+            toast(o.type === 'rune' ? '🔮 Nova runa!' : '🎁 Blago pronađeno!');
+            burst(o.x, o.y);
+          });
+        }
+      }
+
+      function burst(x, y) {
+        for (let i = 0; i < 18; i++) particles.push({x, y, vx: (Math.random() - .5) * 8, vy: (Math.random() - .5) * 8, life: 40});
+      }
+
+      function hit() {
+        if (paused || atk > 0) return;
+        atk = 20;
+        const enemies = [...mobs.filter(m => m.alive), ...(boss.alive && objects.filter(o => o.type === 'rune' && o.done).length === 3 ? [boss] : [])];
+        for (const e of enemies) {
+          if (dist(hero, e) < 92) {
+            e.hp -= s.power;
+            burst(e.x, e.y);
+            if (e.hp <= 0) {
+              e.alive = false;
+              reward(e === boss ? 100 : 8);
+              toast(e === boss ? '👑 Čuvar pobijeđen!' : '⚔️ Protivnik pobijeđen!');
+            }
+          }
+        }
+      }
+
+      function damage() {
+        if (inv > 0 || paused) return;
+        s.hp--;
+        inv = isEasy() ? 130 : 85;
+        burst(hero.x, hero.y);
+        hud();
+        if (s.hp <= 0) {
+          panel('💗 Novi pokušaj', 'Zadržavaš dragulje i nadogradnje.');
+          btn('Vrati se', () => { s.hp = s.max; init(); });
+        } else toast('Pazi na neprijatelje!');
+      }
+
+      function shop() {
+        panel('🛍️ Trgovina', `Imaš ${s.gems} dragulja.`);
+        btn('❤️ Dodatno srce — 60 💎', () => buy(60, () => { s.max++; s.hp++; }));
+        btn(`⚔️ Jači napad — ${s.power * 45} 💎`, () => buy(s.power * 45, () => s.power++));
+        btn(`💨 Brže kretanje — ${s.speed * 40} 💎`, () => buy(s.speed * 40, () => s.speed++));
+        btn('Zatvori', close);
+      }
+
+      function buy(cost, fn) {
+        if (s.gems < cost) {
+          $('feedback').textContent = 'Nedovoljno dragulja';
+          return;
+        }
+        s.gems -= cost;
+        fn();
+        shop();
+        hud();
+      }
+
+      function move(dx, dy) {
+        hero.x = Math.max(35, Math.min(1885, hero.x + dx));
+        hero.y = Math.max(35, Math.min(1625, hero.y + dy));
+      }
+
+      function update() {
+        if (paused) return;
+        const speed = isEasy() ? 1.1 : 1;
+        let x = joy.x + (held.right ? 1 : 0) - (held.left ? 1 : 0);
+        let y = joy.y + (held.down ? 1 : 0) - (held.up ? 1 : 0);
+        const l = Math.hypot(x, y);
+        if (l > .1) {
+          x /= Math.max(1, l);
+          y /= Math.max(1, l);
+          hero.face = Math.atan2(y, x);
+          move(x * (2.8 + s.speed * .4) * speed, y * (2.8 + s.speed * .4) * speed);
+        }
+        if (held.hit) hit();
+        if (inv > 0) inv--;
+        if (atk > 0) atk--;
+        if (dashCD > 0) dashCD--;
+        for (const e of mobs) {
+          if (!e.alive) continue;
+          e.t++;
+          const d = dist(hero, e);
+          if (d < 280) {
+            const chaseSpeed = isEasy() ? .55 : 1 + world * .2;
+            e.x += (hero.x - e.x) / Math.max(d, 1) * chaseSpeed;
+            e.y += (hero.y - e.y) / Math.max(d, 1) * chaseSpeed;
+          } else {
+            e.x += Math.sin(e.t * .02) * .35;
+            e.y += Math.cos(e.t * .02) * .35;
+          }
+          if (d < 34) damage();
+        }
+        if (boss.alive && objects.filter(o => o.type === 'rune' && o.done).length === 3) {
+          const d = dist(hero, boss);
+          if (d < 350) {
+            const chaseSpeed = isEasy() ? .55 : 1;
+            boss.x += (hero.x - boss.x) / Math.max(d, 1) * chaseSpeed;
+            boss.y += (hero.y - boss.y) / Math.max(d, 1) * chaseSpeed;
+            if (d < 55) damage();
+          }
+        }
+        camX = Math.max(0, Math.min(1920 - w, hero.x - w / 2));
+        camY = Math.max(0, Math.min(1664 - h, hero.y - h / 2));
+        updateNavigation();
+      }
+
+      function draw() {
+        frame++;
+        const theme = themes[world];
+        g.fillStyle = theme[1];
+        g.fillRect(0, 0, w, h);
+        g.save();
+        g.translate(-camX, -camY);
+        const x0 = Math.floor(camX / 64) - 1, x1 = Math.ceil((camX + w) / 64) + 1;
+        const y0 = Math.floor(camY / 64) - 1, y1 = Math.ceil((camY + h) / 64) + 1;
+        for (let y = Math.max(0, y0); y < Math.min(26, y1); y++) {
+          for (let x = Math.max(0, x0); x < Math.min(30, x1); x++) {
+            g.fillStyle = (x * 7 + y * 13) % 5 ? theme[1] : theme[2];
+            g.fillRect(x * 64, y * 64, 65, 65);
+            if ((x * 19 + y * 23) % 7 === 0) {
+              g.fillStyle = '#ffffff22';
+              g.fillRect(x * 64 + 18, y * 64 + 22, 5, 5);
+            }
+          }
+        }
+        const emoji = (txt, x, y, size = 38) => {
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.font = `${size}px system-ui`;
+          g.fillText(txt, x, y);
+        };
+        for (let i = 0; i < 160; i++) {
+          const x = (i * 173 + 89) % 1850, y = (i * 239 + 57) % 1590;
+          if (x < camX - 60 || x > camX + w + 60 || y < camY - 60 || y > camY + h + 60) continue;
+          if ([hero, ...objects, portal, boss].some(o => dist({x, y}, o) < 60)) continue;
+          g.fillStyle = '#0004';
+          g.beginPath();
+          g.ellipse(x + 4, y + 14, 27, 12, 0, 0, 7);
+          g.fill();
+          g.fillStyle = theme[2];
+          g.beginPath();
+          g.arc(x, y, 30, 0, 7);
+          g.fill();
+          g.fillStyle = theme[3];
+          g.beginPath();
+          g.arc(x - 7, y - 8, 21, 0, 7);
+          g.fill();
+        }
+        for (const o of objects) {
+          if (!o.done) emoji(o.type === 'rune' ? '🔮' : o.type === 'chest' ? '🎁' : '💖', o.x, o.y + Math.sin(frame * .05) * 4);
+        }
+        emoji('🌀', portal.x, portal.y, 65);
+        if (boss.alive || objects.some(o => o.type === 'rune' && !o.done)) emoji('🔒', portal.x, portal.y, 26);
+        for (const e of mobs) {
+          if (!e.alive) continue;
+          g.fillStyle = '#a97de1';
+          g.beginPath();
+          g.arc(e.x, e.y, 19, 0, 7);
+          g.fill();
+          emoji('👀', e.x, e.y - 3, 20);
+        }
+        if (boss.alive && objects.filter(o => o.type === 'rune' && o.done).length === 3) {
+          emoji('👹', boss.x, boss.y, 65);
+          g.fillStyle = '#ff8c8c';
+          g.fillRect(boss.x - 38, boss.y - 52, 76 * boss.hp / bossMaxHp(), 7);
+        }
+        g.save();
+        g.translate(hero.x, hero.y);
+        if (inv > 0 && frame % 8 < 4) g.globalAlpha = .4;
+        g.fillStyle = '#0005';
+        g.beginPath();
+        g.ellipse(0, 18, 23, 9, 0, 0, 7);
+        g.fill();
+        emoji(s.character ? '🐻' : '🐰', 0, 0, 49);
+        if (atk > 0) {
+          g.strokeStyle = '#fff5ae';
+          g.lineWidth = 5;
+          g.beginPath();
+          g.arc(0, 0, 65, hero.face - .9, hero.face + .9);
+          g.stroke();
+        }
+        g.restore();
+        particles = particles.filter(p => p.life-- > 0);
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          g.fillStyle = '#ffe7a5';
+          g.fillRect(p.x, p.y, 5, 5);
+        }
+        g.restore();
+      }
+
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      let pointer = null;
+      const pad = $('pad'), stick = $('stick');
+      function stickMove(e) {
+        const b = pad.getBoundingClientRect();
+        const dx = e.clientX - (b.left + b.width / 2), dy = e.clientY - (b.top + b.height / 2);
+        const l = Math.hypot(dx, dy) || 1, r = Math.min(l, 40);
+        joy.x = dx / Math.max(l, 40);
+        joy.y = dy / Math.max(l, 40);
+        stick.style.transform = `translate(${dx / l * r}px,${dy / l * r}px)`;
+      }
+      pad.addEventListener('pointerdown', e => {
+        pointer = e.pointerId;
+        pad.setPointerCapture(pointer);
+        stickMove(e);
+      });
+      pad.addEventListener('pointermove', e => { if (e.pointerId === pointer) stickMove(e); });
+      for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+        pad.addEventListener(ev, e => {
+          if (e.pointerId === pointer) {
+            pointer = null;
+            joy.x = joy.y = 0;
+            stick.style.transform = '';
+          }
+        });
+      }
+      $('hit').addEventListener('pointerdown', e => {
+        e.preventDefault();
+        held.hit = true;
+        hit();
+      });
+      for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('hit').addEventListener(ev, () => held.hit = false);
+      $('use').onclick = use;
+      $('dash').onclick = () => {
+        if (dashCD > 0 || paused) return;
+        dashCD = 90;
+        move(Math.cos(hero.face) * 120, Math.sin(hero.face) * 120);
+        burst(hero.x, hero.y);
+      };
+      $('swap').onclick = () => {
+        s.character = 1 - s.character;
+        toast(s.character ? '🐻 Lilo!' : '🐰 Milo!');
+        save();
+      };
+      $('shop').onclick = shop;
+      $('help').onclick = () => {
+        panel('🧭 Kako igrati', 'Prati strelicu do tri rune, riješi zadatke, pobijedi čuvara i dođi do portala. Škrinje daju dragulje, a ružičasti izvor liječi za 15 dragulja. Kupuj nadogradnje!');
+        btn(`Promijeni težinu (${s.difficulty === 'normal' ? 'Uobičajeno' : 'Lagano'})`, () => difficultyPicker());
+        btn('Nastavi', close);
+      };
+      const km = {ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', a: 'left', d: 'right', w: 'up', s: 'down'};
+      document.addEventListener('keydown', e => {
+        if (km[e.key]) {
+          held[km[e.key]] = true;
+          e.preventDefault();
+        }
+        if (e.key === ' ') hit();
+        if (e.key === 'e') use();
+      });
+      document.addEventListener('keyup', e => { if (km[e.key]) held[km[e.key]] = false; });
+      addEventListener('blur', () => { held = {}; joy.x = joy.y = 0; });
+
+      init();
+      if (!s.difficulty) difficultyPicker(true);
+      loop();
+    })();
+  </script>
+</body>
+</html>
