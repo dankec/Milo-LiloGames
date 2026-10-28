@@ -3,7 +3,7 @@ name: Milo & Lilo Android
 on:
   workflow_dispatch:
   push:
-    branches: [main, feature/lost-light]
+    branches: [feature/lost-light-godot]
     paths:
       - 'Milo-Lilo-Lost-Light/**'
       - '.github/workflows/milo-lilo-android.yml'
