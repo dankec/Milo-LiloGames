@@ -2,6 +2,7 @@ extends CanvasLayer
 ## Accessible large touch controls, pause menu and non-punitive maths dialog.
 
 const LevelData = preload("res://scripts/level_data.gd")
+const VirtualJoystick = preload("res://scripts/virtual_joystick.gd")
 
 var game
 var menu: Control
@@ -11,6 +12,8 @@ var math_overlay: ColorRect
 var status: Label
 var counters: Label
 var hearts: Label
+var current_hero: Label
+var joystick: Node2D
 var modal_visible := false
 var _touch_controls: Array = []
 var _progress: Dictionary = {}
@@ -134,25 +137,28 @@ func _build_hud() -> void:
 	hearts.add_theme_font_size_override("font_size",29)
 	hearts.add_theme_color_override("font_color",Color("ffa8ba"))
 	hud.add_child(hearts)
+	current_hero = Label.new()
+	current_hero.position = Vector2(959, 61)
+	current_hero.add_theme_font_size_override("font_size", 17)
+	current_hero.add_theme_color_override("font_color", Color("fff0bc"))
+	current_hero.text = "MILO"
+	hud.add_child(current_hero)
 	var pause := _make_button("Ⅱ",58)
 	pause.position = Vector2(1196,19)
 	pause.custom_minimum_size = Vector2(55,55)
 	pause.mouse_filter = Control.MOUSE_FILTER_STOP
 	pause.pressed.connect(func(): game.toggle_pause())
 	hud.add_child(pause)
+	# Three fixed buttons + one floating, gesture-driven left joystick.
 	for info in [
-		["left", "move_left",Vector2(92,621)],
-		["right","move_right",Vector2(260,621)],
-		["up","move_up",Vector2(176,545)],
-		["down","move_down",Vector2(176,650)],
-		["switch","switch_hero",Vector2(896,625)],
-		["action","action",Vector2(1018,625)],
-		["jump","jump",Vector2(1152,584)]]:
+		["switch", "switch_hero", Vector2(887, 617)],
+		["action", "action", Vector2(1009, 615)],
+		["jump", "jump", Vector2(1146, 573)]]:
 		var b := TouchScreenButton.new()
 		b.texture_normal = load("res://assets/ui/%s.png" % info[0])
 		b.action = info[1]
-		b.position = info[2] - Vector2(43,43)
-		b.scale = Vector2(0.64,0.64)
+		b.position = info[2] - Vector2(43, 43)
+		b.scale = Vector2(0.64, 0.64)
 		b.visibility_mode = TouchScreenButton.VISIBILITY_ALWAYS
 		var circle := CircleShape2D.new()
 		circle.radius = 86.0
@@ -160,6 +166,9 @@ func _build_hud() -> void:
 		add_child(b)
 		_touch_controls.append(b)
 		b.visible = false
+	joystick = VirtualJoystick.new()
+	add_child(joystick)
+	joystick.set_enabled(false)
 
 func _build_pause() -> void:
 	pause_overlay = _modal_backdrop()
@@ -212,6 +221,7 @@ func show_menu(data: Dictionary) -> void:
 	math_overlay.visible = false
 	modal_visible = false
 	for b in _touch_controls: b.visible = false
+	joystick.set_enabled(false)
 
 func show_game(stage: int,data: Dictionary) -> void:
 	_progress = data
@@ -221,12 +231,16 @@ func show_game(stage: int,data: Dictionary) -> void:
 	math_overlay.visible = false
 	modal_visible = false
 	for b in _touch_controls: b.visible = true
+	joystick.set_enabled(true)
 	show_status(LevelData.GOALS[stage])
 
 func show_status(message: String) -> void:
 	if status == null: return
 	status.text = message
 	counters.text = "✦ %d novčića    ◆ %d / 3 kristala    ▤ %d / 3 karte" % [int(_progress.get("coins",0)), _progress.get("crystals",[]).size(),_progress.get("maps",[]).size()]
+
+func update_hero_name(name: String) -> void:
+	current_hero.text = "IGRA: " + name.to_upper()
 
 func update_hearts(hp: int) -> void:
 	hearts.text = "♥".repeat(maxi(0,hp)) + "♡".repeat(maxi(0,3-hp))
@@ -235,17 +249,20 @@ func show_pause() -> void:
 	pause_overlay.visible = true
 	modal_visible = true
 	for b in _touch_controls: b.visible = false
+	joystick.set_enabled(false)
 
 func hide_pause() -> void:
 	pause_overlay.visible = false
 	modal_visible = false
 	for b in _touch_controls: b.visible = true
+	joystick.set_enabled(true)
 
 func show_math(question: String,answers: Array,correct: int) -> void:
 	for n in math_overlay.get_children(): n.queue_free()
 	math_overlay.visible = true
 	modal_visible = true
 	for b in _touch_controls: b.visible = false
+	joystick.set_enabled(false)
 	var box := _modal_card(math_overlay,Vector2(310,135),Vector2(660,430))
 	_add_heading(box,"Čarobna zagonetka ✨")
 	_add_heading(box,question)
@@ -271,12 +288,14 @@ func hide_math() -> void:
 	math_overlay.visible = false
 	modal_visible = false
 	for b in _touch_controls: b.visible = true
+	joystick.set_enabled(true)
 
 func show_victory(data: Dictionary) -> void:
 	for n in math_overlay.get_children(): n.queue_free()
 	math_overlay.visible = true
 	modal_visible = true
 	for b in _touch_controls: b.visible = false
+	joystick.set_enabled(false)
 	var box := _modal_card(math_overlay,Vector2(275,145),Vector2(730,450))
 	_add_heading(box,"☀ SVJETLO SE VRATILO! ☀")
 	_add_heading(box,"Milo i Lilo spasili su otok!")
@@ -308,7 +327,7 @@ func _show_settings() -> void:
 	var box := _modal_card(bg,Vector2(395,145),Vector2(490,440))
 	_add_heading(box,"Postavke")
 	var note := Label.new()
-	note.text = "Igra je potpuno offline.\nUpravljanje: strelice, razmak, J, Tab."
+	note.text = "Igra je potpuno offline.\nUpravljanje: pomični joystick, povuci gore za skok.\nDesno: skok, akcija i promjena lika."
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(note)
 	for kind in ["music","sfx"]:

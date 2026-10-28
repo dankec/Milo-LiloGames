@@ -28,4 +28,4 @@ textures/default_filters/use_nearest_mipmap_filter=false
 common/drop_mouse_on_gui_input_disabled=true
 
 [application/config]
-version="0.2.1-alpha"
+version="0.3.0-alpha"

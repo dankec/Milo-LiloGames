@@ -65,6 +65,7 @@ func load_level(level: int) -> void:
 	world.level_finished.connect(_next_level)
 	world.game_finished.connect(_victory)
 	world.player_damaged.connect(_update_hearts)
+	world.hero_changed.connect(_hero_changed)
 	world.sound_requested.connect(func(name: String): sounds.play_effect(name))
 	add_child(world)
 	# Keep overlay above World regardless of child ordering.
@@ -73,9 +74,13 @@ func load_level(level: int) -> void:
 	sounds.play_theme(LevelData.THEMES[current_level])
 	ui.show_game(current_level, progress)
 	ui.update_hearts(3)
+	ui.update_hero_name("Milo")
 
 func _message(message: String) -> void:
 	if is_instance_valid(ui): ui.show_status(message)
+
+func _hero_changed(name: String) -> void:
+	ui.update_hero_name(name)
 
 func _update_hearts(health: int) -> void:
 	ui.update_hearts(health)

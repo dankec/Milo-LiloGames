@@ -53,3 +53,21 @@ Aplikacija je offline, bez oglasa, analitike, login sustava i traženja osjetlji
 - Nisu provedena testiranja na stvarnom Android uređaju.
 - Neke napredne mehanike i vizualni efekti iz potpunog plana zahtijevaju dodatni razvoj, posebice cinematic animacije, prateća AI logika i precizna mobilna optimizacija.
 - Igre koje imaju isto ime, ali različite potpise, Android neće instalirati kao nadogradnju bez prethodnog uklanjanja prve aplikacije.
+
+## Verzija 0.3.0-alpha — jedan lik, upravljanje prstom
+
+- Na zaslonu je **samo jedan lik**. Tipka za promjenu lika odmah mijenja
+  Mila u Lila ili obratno na istom mjestu, uključujući promjenu skoka,
+  trčanja i sposobnosti. Brzina i pozicija ostaju očuvane i u zraku.
+- Lijevo je **pomični joystick**: dotakni bilo koje mjesto u lijevom donjem
+  dijelu ekrana i povuci lijevo ili desno. Povlačenje gore pokreće skok.
+- Desno su i dalje tri tipke: promjena lika, akcija i zasebna tipka za skok.
+  Mogu se koristiti istodobno s joystickom (multitouch).
+- Joystick se gasi za vrijeme pauze, matematičkog pitanja ili izbornika.
+- Samo jedan CharacterBody2D postoji u razini; nema automatskog pratitelja.
+- Android je prisilno u Landscape orijentaciji.
+
+**Napomena o instalaciji:** GitHub Actions debug APK generira novi privremeni
+potpisni ključ, pa za instaliranje preko stare verzije Android može tražiti
+uklanjanje stare razvojne aplikacije. Time se briše njezin lokalni napredak.
+Za produkcijsko ažuriranje nužan je trajni sigurno pohranjeni potpisni ključ.

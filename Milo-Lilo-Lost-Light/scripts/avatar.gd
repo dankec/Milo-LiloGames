@@ -1,5 +1,5 @@
 extends CharacterBody2D
-## Physically simulated, switchable playable hero with a companion AI.
+## One visible playable hero; instant Milo/Lilo transformation preserves momentum.
 
 signal hurt
 signal fell
@@ -7,7 +7,6 @@ signal shielded
 
 var hero_id := "milo"
 var active := false
-var partner
 var double_jump := false
 var invulnerable := 0.0
 var speed := 300.0
@@ -28,6 +27,11 @@ func configure(which: String, is_active: bool) -> void:
 	active = is_active
 	speed = 355.0 if which == "milo" else 270.0
 	jump_power = -560.0 if which == "milo" else -480.0
+	# Do not teleport, halt or change vertical velocity during a mid-air switch.
+	_jump_buffer = 0.0
+	if is_instance_valid(sprite):
+		_load_frames()
+		_refresh_sprite("jump" if velocity.y < 0.0 else "idle")
 
 func _ready() -> void:
 	collision_layer = 2
@@ -42,9 +46,13 @@ func _ready() -> void:
 	sprite.scale = Vector2(0.60, 0.60)
 	sprite.position = Vector2(0, -10)
 	add_child(sprite)
+	_load_frames()
+	_refresh_sprite("idle")
+
+func _load_frames() -> void:
+	_frames.clear()
 	for state in ["idle", "run1", "run2", "jump", "fall", "attack", "hurt", "celebrate"]:
 		_frames[state] = load("res://assets/characters/%s_%s.png" % [hero_id, state])
-	_refresh_sprite("idle")
 
 func _physics_process(delta: float) -> void:
 	_anim_time += delta
@@ -68,15 +76,6 @@ func _physics_process(delta: float) -> void:
 				_air_jumps += 1
 			_coyote = 0.0
 			_jump_buffer = 0.0
-	elif is_instance_valid(partner):
-		var dx: float = partner.global_position.x - global_position.x
-		if absf(dx) > 105.0:
-			direction = signf(dx)
-		if absf(dx) > 520.0:
-			global_position = partner.global_position + Vector2(-64.0 * partner._facing, -12)
-			velocity = Vector2.ZERO
-		if partner.global_position.y < global_position.y - 75.0 and is_on_floor() and absf(dx) > 80.0:
-			velocity.y = jump_power
 	velocity.x = move_toward(velocity.x, direction * speed, (1950.0 if is_on_floor() else 1150.0) * delta)
 	if absf(direction) > 0.1:
 		_facing = int(signf(direction))
@@ -95,7 +94,7 @@ func _physics_process(delta: float) -> void:
 	_refresh_sprite(pose)
 	sprite.flip_h = _facing < 0
 	sprite.modulate = Color(1, 1, 1, 0.55) if invulnerable > 0.0 and int(_anim_time * 12.0) % 2 == 0 else Color.WHITE
-	sprite.scale = Vector2(0.64, 0.64) if active else Vector2(0.58, 0.58)
+	sprite.scale = Vector2(0.64, 0.64)
 
 func _refresh_sprite(pose: String) -> void:
 	if is_instance_valid(sprite):

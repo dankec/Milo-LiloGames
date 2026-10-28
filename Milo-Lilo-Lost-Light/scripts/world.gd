@@ -7,6 +7,7 @@ signal math_requested(question: String, answers: Array, correct: int)
 signal level_finished
 signal game_finished
 signal player_damaged(health: int)
+signal hero_changed(name: String)
 
 const SaveManager = preload("res://scripts/save_manager.gd")
 const Avatar = preload("res://scripts/avatar.gd")
@@ -15,7 +16,7 @@ const LevelData = preload("res://scripts/level_data.gd")
 var stage := 0
 var data: Dictionary
 var save_data: Dictionary
-var heroes: Array = []
+var hero: CharacterBody2D
 var selected := 0
 var cam: Camera2D
 var items: Array[Dictionary] = []
@@ -80,23 +81,19 @@ func _ready() -> void:
 	checkpoint_x = clampf(float(save_data.get("checkpoints", {}).get(str(stage), 145.0)), 145.0, 1430.0)
 	checkpoint_activated = checkpoint_x > 145.0
 	_make_gate()
-	for i in 2:
-		var hero = Avatar.new()
-		hero.configure("milo" if i == 0 else "lilo", i == 0)
-		hero.position = Vector2(checkpoint_x + 82 * i, 584)
-		if hero.hero_id == "milo" and save_data["abilities"].has("double_jump"):
-			hero.double_jump = true
-		if save_data["abilities"].has("shield"):
-			hero.shield_charges = 1
-		hero.hurt.connect(_on_hurt)
-		hero.fell.connect(_on_fell.bind(hero))
-		hero.shielded.connect(func(): flash("Čarobni štit je zaustavio udarac!"))
-		add_child(hero)
-		heroes.append(hero)
-	heroes[0].partner = heroes[1]
-	heroes[1].partner = heroes[0]
+	# A single CharacterBody2D is visible; switch changes its appearance and abilities.
+	hero = Avatar.new()
+	hero.configure("milo", true)
+	hero.position = Vector2(checkpoint_x, 584)
+	hero.double_jump = save_data["abilities"].has("double_jump")
+	if save_data["abilities"].has("shield"):
+		hero.shield_charges = 1
+	hero.hurt.connect(_on_hurt)
+	hero.fell.connect(_on_fell.bind(hero))
+	hero.shielded.connect(func(): flash("Čarobni štit je zaustavio udarac!"))
+	add_child(hero)
 	cam = Camera2D.new()
-	cam.position = heroes[0].position
+	cam.position = hero.position
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 5.0
 	cam.limit_left = 0
@@ -145,7 +142,7 @@ func _add_item(kind: String, at: Vector2, identity: String) -> void:
 	items.append({"kind":kind, "pos":at, "id":identity, "taken":already})
 
 func active_player():
-	return heroes[selected]
+	return hero
 
 func _process(delta: float) -> void:
 	_clock += delta
@@ -254,9 +251,9 @@ func _pickup(item: Dictionary) -> void:
 			flash("Kristal svjetlosti pronađen! ✨")
 		"gift":
 			if not save_data["abilities"].has(item.id): save_data["abilities"].append(item.id)
-			if item.id == "double_jump": heroes[0].double_jump = true
+			if item.id == "double_jump" and hero.hero_id == "milo": hero.double_jump = true
 			if item.id == "shield":
-				for hero in heroes: hero.shield_charges = 1
+				hero.shield_charges = 1
 			if item.id == "magnet":
 				flash("Magnet privlači novčiće iz daljine!")
 			else:
@@ -274,7 +271,11 @@ func _pickup(item: Dictionary) -> void:
 func switch_hero() -> void:
 	sound_requested.emit("switch")
 	selected = 1 - selected
-	for i in heroes.size(): heroes[i].active = i == selected
+	var new_id := "milo" if selected == 0 else "lilo"
+	hero.configure(new_id, true)
+	hero.double_jump = new_id == "milo" and save_data["abilities"].has("double_jump")
+	# Transform in place and in mid-jump, with the same velocity and health.
+	hero_changed.emit("Milo" if selected == 0 else "Lilo")
 	flash("Sada igra %s!" % ("Milo" if selected == 0 else "Lilo"))
 
 func interact() -> void:

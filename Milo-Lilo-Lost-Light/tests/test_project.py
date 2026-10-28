@@ -28,7 +28,7 @@ class ProjectTest(unittest.TestCase):
     def test_package_id(self):
         cfg = (ROOT / 'export_presets.cfg').read_text()
         self.assertIn('hr.milolilo.lostlight', cfg)
-        self.assertIn('version/code=3', cfg)
+        self.assertIn('version/code=4', cfg)
 
     def test_mobile_landscape_orientation(self):
         # Godot DisplayServer SCREEN_LANDSCAPE=0; SCREEN_PORTRAIT=1.
@@ -62,7 +62,28 @@ class ProjectTest(unittest.TestCase):
         world = (ROOT / 'scripts/world.gd').read_text()
         self.assertIn('shield_charges -= 1', avatar)
         self.assertIn('player.position.distance_to(item.pos) < pickup_radius', world)
-        self.assertIn('heroes[0].double_jump = true', world)
+        self.assertIn('hero.double_jump = true', world)
+
+    def test_single_hero_and_transform(self):
+        world = (ROOT / 'scripts/world.gd').read_text()
+        avatar = (ROOT / 'scripts/avatar.gd').read_text()
+        self.assertIn('hero = Avatar.new()', world)
+        self.assertIn('hero.configure(new_id, true)', world)
+        self.assertIn('hero_changed.emit(', world)
+        self.assertNotIn('heroes.append(', world)
+        self.assertNotIn('partner.global_position', avatar)
+
+    def test_virtual_joystick(self):
+        joystick = (ROOT / 'scripts/virtual_joystick.gd').read_text()
+        for token in ['InputEventScreenTouch', 'InputEventScreenDrag',
+                      'move_left', 'move_right', 'SWIPE_JUMP', 'Input.action_press("jump")',
+                      '_release_touch()', 'get_viewport().set_input_as_handled()']:
+            self.assertIn(token, joystick)
+        interface = (ROOT / 'scripts/ui.gd').read_text()
+        self.assertIn('VirtualJoystick.new()', interface)
+        self.assertIn('joystick.set_enabled(false)', interface)
+        self.assertIn('joystick.set_enabled(true)', interface)
+        self.assertNotIn('["left", "move_left"', interface)
 
     def test_audio_is_small(self):
         # 5 theme loops must not inflate downloads by >1 MB each.
