@@ -1,0 +1,11 @@
+.godot/
+*.tmp
+*.bak
+*.apk
+*.aab
+*.keystore
+*.jks
+bin/
+dist/
+__pycache__/
+.DS_Store
