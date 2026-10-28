@@ -8,6 +8,20 @@ Samostalni **Godot 4.7.2** offline 2D projekt za Android, s vlastitim izvornim g
 
 Milo (sivi zec) i Lilo (smeđi medvjed) istražuju pet područja i vraćaju svjetlo. Koristite zeca za viši skok, medvjeda za otvaranje kamenih vrata. Tipke na računalu: lijevo/desno ili A/D, Space skok, J akcija, Tab promjena lika, Esc pauza. Na mobitelu koriste se velike dodirne kontrole. Matematički zadaci su 0–10.
 
+## Android prikaz i orijentacija
+
+Igra je predviđena za **vodoravni prikaz (Landscape)**. U `project.godot` postavljeno je
+`display/window/handheld/orientation=0` (Godotov `SCREEN_LANDSCAPE`), uz 1280 × 720
+logički viewport i `canvas_items` skaliranje. Pokretanje aplikacije na mobitelu
+prebacuje prikaz u vodoravni način; portretni prikaz nije podržan.
+
+**v0.2.1-alpha:** ispravak prethodnog slučajnog `orientation=1` (Portrait).
+Android debug APK-ovi iz različitih GitHub Actions izvođenja koriste različite
+potpisne ključeve. Ako se novi APK ne može instalirati preko prethodnog, deinstalirajte
+prethodnu razvojnu aplikaciju (lokalno spremljeni napredak tada se briše),
+pa instalirajte novi APK. Za buduće nadogradnje bez gubitka podataka treba trajni
+release keystore izvan javnog repozitorija.
+
 ## Lokalno pokretanje
 
 1. Instalirajte [Godot 4.7.2 standard](https://godotengine.org/download/archive/4.7.2-stable/) ; Python 3 s Pillow (`pip install Pillow`) potreban je samo za ponovno generiranje grafike.
