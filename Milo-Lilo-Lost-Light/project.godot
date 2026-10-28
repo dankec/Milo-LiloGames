@@ -1,0 +1,30 @@
+; Milo & Lilo — original Godot adventure
+config_version=5
+
+[application]
+config/name="Milo & Lilo: Tajna izgubljenog svjetla"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/description="Offline 2D children's adventure with Milo the rabbit and Lilo the bear"
+config/icon="res://assets/ui/icon.png"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+window/size/resizable=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[physics]
+2d/default_gravity=1120.0
+
+[gui]
+common/drop_mouse_on_gui_input_disabled=true
+
+[application/config]
+version="0.2.0-alpha"
