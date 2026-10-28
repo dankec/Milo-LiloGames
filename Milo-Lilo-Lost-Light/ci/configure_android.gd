@@ -9,5 +9,5 @@ func _initialize() -> void:
 		settings.set_setting("export/android/android_sdk_path", android_home)
 	if java_home != "":
 		settings.set_setting("export/android/java_sdk_path", java_home)
-	settings.save()
+	# Godot 4.7 EditorSettings persists on exit; no public save() method.
 	quit()
