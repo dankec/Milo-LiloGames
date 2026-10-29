@@ -2,7 +2,7 @@ extends CanvasLayer
 ## Accessible large touch controls, pause menu and non-punitive maths dialog.
 
 const LevelData = preload("res://scripts/level_data.gd")
-const VirtualJoystick = preload("res://scripts/virtual_joystick.gd")
+const FloatingJoystickScript = preload("res://scripts/virtual_joystick.gd")
 
 var game
 var menu: Control
@@ -166,7 +166,7 @@ func _build_hud() -> void:
 		add_child(b)
 		_touch_controls.append(b)
 		b.visible = false
-	joystick = VirtualJoystick.new()
+	joystick = FloatingJoystickScript.new()
 	add_child(joystick)
 	joystick.set_enabled(false)
 
