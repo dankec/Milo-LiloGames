@@ -33,7 +33,9 @@ class ProjectTest(unittest.TestCase):
     def test_mobile_landscape_orientation(self):
         # Godot DisplayServer SCREEN_LANDSCAPE=0; SCREEN_PORTRAIT=1.
         project = (ROOT / 'project.godot').read_text()
-        self.assertRegex(project, r'(?m)^window/handheld/orientation=0
+        self.assertRegex(project, r'(?m)^window/handheld/orientation=0$')
+        self.assertIn('window/stretch/mode="canvas_items"', project)
+        self.assertIn('window/stretch/aspect="expand"', project)
         self.assertRegex(project, r'(?m)^window/size/viewport_width=1280$')
         self.assertRegex(project, r'(?m)^window/size/viewport_height=720$')
 
