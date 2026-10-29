@@ -53,18 +53,21 @@ jobs:
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
-      - name: Headless parse/import and smoke test
-        timeout-minutes: 3
+      - name: Headless import, actual boot and Android configuration
+        timeout-minutes: 4
         working-directory: Milo-Lilo-Lost-Light
         run: |
           set -euo pipefail
           GODOT=/tmp/godotbin/Godot_v4.7.2-stable_linux.x86_64
           timeout 90s "$GODOT" --headless --path . --editor --quit 2>&1 | tee /tmp/import.log
-          ! grep -Eq 'SCRIPT ERROR|Parse Error|Failed to load' /tmp/import.log
-          timeout 30s "$GODOT" --headless --path . --quit-after 45 2>&1 | tee /tmp/run.log
-          ! grep -Eq 'SCRIPT ERROR|Parse Error|Failed to load' /tmp/run.log
+          timeout 45s "$GODOT" --headless --path . --script res://ci/verify_boot.gd 2>&1 | tee /tmp/boot.log
+          grep -Fq 'BOOT_MENU_OK' /tmp/boot.log
+          grep -Fq 'BOOT_GAME_OK' /tmp/boot.log
           timeout 30s "$GODOT" --headless --path . --editor --script res://ci/configure_android.gd 2>&1 | tee /tmp/config.log
-          ! grep -Eq 'SCRIPT ERROR|Parse Error|Failed to load' /tmp/config.log
+          if grep -Eiq 'SCRIPT ERROR:|Parse Error:|Compile Error:|Failed to load script|Invalid call|BOOT_FAILURE' /tmp/import.log /tmp/boot.log /tmp/config.log; then
+            echo 'Godot startup or configuration errors detected'
+            exit 1
+          fi
       - name: Upload smoke-test diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,14 +75,15 @@ jobs:
           name: Milo-Lilo-ci-logs
           path: |
             /tmp/import.log
-            /tmp/run.log
+            /tmp/boot.log
             /tmp/config.log
           if-no-files-found: ignore
       - name: Export debug APK
         working-directory: Milo-Lilo-Lost-Light
         run: |
           set -euo pipefail
-          /tmp/godotbin/Godot_v4.7.2-stable_linux.x86_64 --headless --path . --export-debug Android ../dist/Milo-Lilo-Lost-Light-debug.apk
+          /tmp/godotbin/Godot_v4.7.2-stable_linux.x86_64 --headless --path . --export-debug Android ../dist/Milo-Lilo-Lost-Light-debug.apk 2>&1 | tee /tmp/export.log
+          if grep -Eiq 'SCRIPT ERROR:|Parse Error:|Compile Error:|Failed to load script|Invalid call' /tmp/export.log; then exit 1; fi
           test -s ../dist/Milo-Lilo-Lost-Light-debug.apk
           unzip -t ../dist/Milo-Lilo-Lost-Light-debug.apk | tail -n 2
       - uses: actions/upload-artifact@v4
